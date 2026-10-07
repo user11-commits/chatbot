@@ -20,6 +20,21 @@ DATA = ROOT / "DATA"
 UNKNOWN = "제공된 문서에서 질문에 대한 근거를 찾을 수 없습니다."
 
 
+def read_api_key() -> str:
+    # Cloud에서는 Secrets가 우선입니다. 키를 화면이나 로그에 출력하지 않습니다.
+    try:
+        secret_key = st.secrets.get("OPENAI_API_KEY")
+    except FileNotFoundError:
+        # 로컬에 secrets.toml 파일이 없어도 .env로 실행할 수 있습니다.
+        secret_key = None
+    if secret_key is not None and not isinstance(secret_key, str):
+        raise ValueError("Secrets의 OPENAI_API_KEY는 따옴표로 감싼 문자열이어야 합니다.")
+    if secret_key and secret_key.strip():
+        return secret_key.strip()
+    local_key = dotenv_values(ROOT / ".env", encoding="utf-8-sig").get("OPENAI_API_KEY")
+    return (local_key or "").strip()
+
+
 class Evidence(BaseModel):
     # 모델이 파일명을 만들어내지 않도록 검색 결과의 번호만 받습니다.
     source_id: int = Field(description="검색한 자료의 번호, 1부터 시작")
@@ -172,7 +187,7 @@ def show_answer(message: dict) -> None:
 def error_message(error: Exception) -> str:
     # 예외 전체에는 민감한 정보가 들어갈 수 있어 API 오류는 정해진 문구로 표시합니다.
     if isinstance(error, AuthenticationError):
-        return "OpenAI 인증에 실패했습니다. .env의 OPENAI_API_KEY를 확인하세요."
+        return "OpenAI 인증에 실패했습니다. Secrets 또는 .env의 OPENAI_API_KEY를 확인하세요."
     if isinstance(error, RateLimitError):
         return "OpenAI 요청 한도 또는 잔액을 확인한 뒤 다시 시도하세요."
     if isinstance(error, APIConnectionError):
@@ -186,10 +201,14 @@ def main() -> None:
     st.set_page_config(page_title="문서 RAG 챗봇", page_icon="📚")
     st.title("📚 문서 RAG 챗봇")
     st.caption("DATA 문서에서 답을 찾고, 답변 아래에 출처와 원문 근거를 표시합니다.")
-    # 환경변수보다 .env 값을 직접 읽어 사용자가 지정한 키를 확실하게 사용합니다.
-    api_key = (dotenv_values(ROOT / ".env", encoding="utf-8-sig").get("OPENAI_API_KEY") or "").strip()
+    try:
+        api_key = read_api_key()
+    except Exception:
+        # Secrets 파싱 오류에도 실제 설정 내용을 노출하지 않습니다.
+        st.error('API 키 설정을 읽을 수 없습니다. Secrets를 OPENAI_API_KEY = "키" 형식으로 확인하세요.')
+        st.stop()
     if not api_key:
-        st.warning("프로젝트의 .env 파일에 OPENAI_API_KEY를 입력하고 저장하세요.")
+        st.warning("Cloud에서는 앱 설정의 Secrets에, 로컬에서는 .env에 OPENAI_API_KEY를 입력하세요.")
         st.stop()
     try:
         manifest = file_manifest()
