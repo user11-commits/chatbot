@@ -1,0 +1,26 @@
+[
+  {
+    "id": "domestic-expenses",
+    "question": "국내 출장 중 근무지 외 출장의 여비에는 어떤 항목이 포함되나요?",
+    "answerable": true,
+    "reference_answer": "근무지 외 국내출장의 여비는 운임, 식비, 숙박비, 일비이다.",
+    "required_terms": [["운임"], ["식비"], ["숙박비"], ["일비"]],
+    "forbidden_terms": [],
+    "expected_evidence": [
+      {
+        "source": "2024년 9장 공무원여비업무 처리기준.pdf",
+        "page": 8,
+        "quote": "근무지외 국내출장 운임, 식비, 숙박비, 일비"
+      }
+    ]
+  },
+  {
+    "id": "out-of-document",
+    "question": "화성에 사는 외계인의 이름은 무엇인가요?",
+    "answerable": false,
+    "reference_answer": "제공된 문서에서 질문에 대한 근거를 찾을 수 없습니다.",
+    "required_terms": [],
+    "forbidden_terms": [],
+    "expected_evidence": []
+  }
+]
